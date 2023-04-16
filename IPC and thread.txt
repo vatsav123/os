@@ -1,0 +1,124 @@
+IPC using shared memory
+
+Writer
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <string.h>
+
+int main()
+{
+    int i,shmid;
+    void *shared_memory;
+    char buff[100];
+    
+    shmid=shmget((key_t)2345,1024,0666|IPC_CREAT);
+    printf("key at the process is %d\n",shmid);
+    shared_memory=shmat(shmid,NULL,0);
+    printf("shared memory is %p\n",shared_memory);
+    
+    read(0,buff,100);
+    strcpy(shared_memory,buff);
+    printf("you wrote: %s",(char *)shared_memory);
+}
+--------------------------------------------------------------
+
+IPC USING PIPES
+
+1) PROCESS
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <string.h>
+
+int main()
+{
+    int pipefds[2];
+    char msg[100];
+    char readmsg[100];
+    
+    do{
+        if(pipe(pipefds)==-1)
+        {
+            printf("unable to pipe\n");
+            return 1;
+        }
+        printf("write here: \n");
+        scanf("%s",msg);
+        write(pipefds[1],msg,sizeof(msg));
+        read(pipefds[0],readmsg,sizeof(readmsg));
+        printf("data read is %s\n",readmsg);
+    }
+    while(strcmp(msg,"0")!=0);
+}
+----------------------------------------------
+2) ZOMBIE
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main()
+{
+    pid_t x;
+    x=fork();
+    if(x==0)
+    {
+        printf("child process is %d\n",getpid());
+    }
+    else{
+        printf("parent process is %d",getpid());
+        sleep(5);
+    }
+}
+------------------------------------------------------
+3) ORPHAN
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main()
+{
+    pid_t x;
+    x=fork();
+    if(x>0)
+    {
+        printf("parent process %d is exiting\n",getpid());
+    }
+    else if(x==0){
+        sleep(3);
+        printf("child process %d is entering",getpid());
+    }
+}
+-------------------------------------------------------------
+
+4) THREAD CREATION
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+int x;
+
+void *mythreadfun(void *var)
+{
+    int *myid=(int *)var;
+    static int y;
+    x++,y++;
+    printf("global: %d, static: %d, threadid: %d\n",x,y,myid);
+}
+
+int main()
+{
+    pthread_t tid;
+    for(int i=0;i<3;i++)
+    {
+        pthread_create(&tid,NULL,mythreadfun,(void *)&tid);
+    }
+    pthread_exit(NULL);
+    
+}
+--------------------------------------------------------------
